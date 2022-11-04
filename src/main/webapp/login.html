@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>login</title>
+    <link href="css/login.css" rel="stylesheet">
+</head>
+
+<body>
+<div id="loginDiv" style="height: 350px">
+    <form action="" id="form">
+        <h1 id="loginMsg">LOGIN IN</h1>
+        <div id="errorMsg">{{login_msg}}</div>
+        <p>Username:<input id="username" v-model="username" type="text"></p>
+
+        <p>Password:<input id="password" v-model="password" type="password"></p>
+        <p>Remember:<input id="remember" :checked="remember" type="checkbox"
+                           @change="remember = $event.target.checked"/></p>
+        <div id="subDiv">
+            <input type="button" class="button" value="login up" @click="login">
+            <input type="button" class="button" value="reset" @click="reset">&nbsp;&nbsp;&nbsp;
+            <a href="register.html">没有账号？</a>
+        </div>
+    </form>
+</div>
+
+<script src="js/vue.js"></script>
+<script src="js/axios-0.18.0.js"></script>
+
+<script type="text/javascript">
+    // 创建Vue核心对象
+    new Vue({
+        el: "#loginDiv",
+        mounted() {
+            let username = this.getCookie("username");
+            let password = this.getCookie("password");
+            if (username && password) {
+                this.username = username;
+                this.password = password;
+            }
+            let loginStatus = this.getCookie("loginStatus");
+            // 如果用户是刚注册成功的话
+            if (loginStatus == "register") {
+                this.login_msg = '注册成功，请登入';
+                // 删除登入信息的cookie
+                document.cookie = "loginStatus=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            } else if (loginStatus == "notLoggedIn") {
+                this.login_msg = '您尚未登入！';
+                // 删除登入信息的cookie
+                document.cookie = "loginStatus=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            }
+        },
+        data() {
+            return {
+                username: '',
+                password: '',
+                remember: '',
+                login_msg: ''
+            }
+        },
+        methods: {
+            login() {
+                let user = {
+                    username: this.username,
+                    password: this.password
+                }
+                // 发送ajax请求，验证登入
+                axios({
+                    method: "post",
+                    url: "http://localhost:8080/brand-case/user/login?remember=" + this.remember,// true or false
+                    data: user
+                }).then((resp) => {
+                    if (resp.data == "success") {
+                        //登陆成功
+                        location.href = "http://localhost:8080/brand-case/brand.html";
+                    } else {
+                        //登入失败
+                        this.login_msg = '用户名或密码不正确';
+                        this.password = '';
+                    }
+                })
+            },
+            // 清空用户名和密码
+            reset() {
+                this.username = '';
+                this.password = '';
+            },
+            // 获取名为cname的cookie的值
+            getCookie(cname) {
+                var name = cname + "=";
+                var decodedCookie = decodeURIComponent(document.cookie);
+                var ca = decodedCookie.split(';');
+                for (var i = 0; i < ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length);
+                    }
+                }
+                return "";
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

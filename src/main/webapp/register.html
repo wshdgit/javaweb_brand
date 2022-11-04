@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>欢迎注册</title>
+    <link href="css/register.css" rel="stylesheet">
+    <link rel="stylesheet" href="element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+
+<div id="register" class="form-div">
+    <div class="reg-content">
+        <h1>欢迎注册</h1>
+        <span>已有帐号？</span> <a href="login.html">登录</a>
+    </div>
+    <form id="reg-form" action="#" method="get">
+
+        <table>
+
+            <tr>
+                <td>用户名</td>
+                <td class="inputs">
+                    <input name="username" v-model="username" type="text" id="username" @blur="selectByUsername"
+                           placeholder="请设置用户名（3~8位）">
+                    <br>
+                    <span id="username_err" class="err_msg">{{username_msg}}</span>
+                </td>
+
+            </tr>
+
+            <tr>
+                <td>密码</td>
+                <td class="inputs">
+                    <input name="password" v-model="password" type="password" id="password" @blur="checkPassword"
+                           placeholder="请设置密码（3~6位）">
+                    <br>
+                    <span id="password_err" class="err_msg">{{password_msg}}</span>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td>验证码</td>
+                <td class="inputs">
+                    <input name="checkCode" type="text" id="checkCode" v-model="checkCode">
+                    <img :src="imgs" @click="verificationCode">
+                    <a href="#" @click="verificationCode">看不清？</a>
+                </td>
+            </tr>
+
+        </table>
+
+        <div class="buttons">
+            <input value="注 册" type="button" id="reg_btn" @click="register">
+        </div>
+        <br class="clear">
+    </form>
+
+</div>
+
+<script src="js/vue.js"></script>
+<script src="js/axios-0.18.0.js"></script>
+<script src="element-ui/lib/index.js"></script>
+
+<script type="text/javascript">
+    // 创建Vue核心对象
+    new Vue({
+        el: "#register",
+        mounted() {
+            // 刷新验证码
+            this.verificationCode();
+        },
+        data() {
+            return {
+                username: '',
+                password: '',
+                username_msg: '',
+                password_msg: '',
+                checkCode: '',
+                imgs: "imgs/a.jpg"
+            }
+        },
+        methods: {
+            // 检查用户名
+            selectByUsername() {
+                // 去首尾空格
+                this.username = this.username.trim();
+                //1.4 判断用户名是否符合规则：长度 3~8,单词字符组成
+                let reg = /^\w{3,8}$/;
+                let flag = reg.test(this.username);
+                if (flag) {
+                    // 发送ajax请求，检查用户名
+                    axios({
+                        method: "get",
+                        url: "http://localhost:8080/brand-case/user/selectByUsername?username=" + this.username,
+                    }).then((resp) => {
+                        if (resp.data == "success") {
+                            //用户名可用
+                            this.username_msg = '';
+                        } else {
+                            //用户名不可用
+                            this.username_msg = '用户名不可用';
+                        }
+                    })
+                } else
+                    this.username_msg = '用户名不太受欢迎';
+            },
+            // 检查密码
+            checkPassword() {
+                // 去除首尾空格
+                this.password = this.password.trim();
+
+                // 判断密码是否符合规则：长度 3~6
+                let reg = /^\w{3,6}$/;
+                let flag = reg.test(this.password);
+                if (flag)
+                    this.password_msg = '';
+                else
+                    this.password_msg = '密码格式有误';
+            },
+            // 检查验证码个数
+            checkVerificationCode() {
+                let reg = /^\w{4}$/;
+                let flag = reg.test(this.checkCode);
+                return flag;
+            },
+            // 提交注册
+            register() {
+                // 调用检查
+                this.selectByUsername();
+                this.checkPassword();
+                let flag = this.username_msg == '' && this.password_msg == '' && this.checkVerificationCode();
+                if (flag) {
+                    let user = {
+                        username: this.username,
+                        password: this.password
+                    }
+                    // 发送ajax请求，进行注册
+                    axios({
+                        method: "post",
+                        url: "http://localhost:8080/brand-case/user/register?checkCode=" + this.checkCode,
+                        data: user
+                    }).then((resp) => {
+                        if (resp.data == "success") {
+                            //注册成功
+                            // 设置注册成功的cookie
+                            this.registrationCookie();
+                            location.href = "http://localhost:8080/brand-case/login.html";
+                        } else if (resp.data == "verificationCodeError") {
+                            //验证码错误
+                            this.password = '';
+                            this.$message({
+                                type: 'info',
+                                message: '验证码错误'
+                            });
+                            // 刷新验证码
+                            this.verificationCode();
+                        } else {
+                            //注册失败
+                            this.password = '';
+                            this.$message({
+                                type: 'info',
+                                message: '注册失败'
+                            });
+                            // 刷新验证码
+                            this.verificationCode();
+                        }
+                    })
+                }
+            },
+            // 改变验证码
+            verificationCode() {
+                this.imgs = "http://localhost:8080/brand-case/user/verificationCode?" + new Date().getMilliseconds();
+            },
+            // 设置注册成功的cookie，给login.html读取
+            registrationCookie() {
+                // 默认情况下，在浏览器关闭时会删除 cookie
+                document.cookie = "loginStatus=register; path=/";
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
